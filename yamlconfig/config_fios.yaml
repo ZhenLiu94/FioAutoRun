@@ -1,0 +1,102 @@
+# 以下为fio配置信息
+fio_configs:
+  fio_result_output: /root/autorunfiooutput/
+  ioengine: libaio
+  runtime: 180
+  direct: 1
+  # 顺序写时延
+  write_lat:
+    bs: 4k
+    size: 102400M
+    iodepth: 1
+    numjobs: 1
+    name: lat_write
+    rw: write
+  # 随机写时延
+  randwrite_lat:
+    bs: 4k
+    size: 102400M
+    iodepth: 1
+    numjobs: 1
+    name: lat_randwrite
+    rw: randwrite
+  # 顺序读时延
+  read_lat:
+    bs: 4k
+    size: 102400M
+    iodepth: 1
+    numjobs: 1
+    name: lat_read
+    rw: read
+  # 随机读时延
+  randread_lat:
+    bs: 4k
+    size: 102400M
+    iodepth: 1
+    numjobs: 1
+    name: lat_randread
+    rw: randread
+  # 顺序写iops
+  write_iops:
+    bs: 4k
+    size: 102400M
+    iodepth: 64
+    numjobs: 4
+    name: iops_write
+    rw: write
+  # 随机写iops
+  randwrite_iops:
+    bs: 4k
+    size: 102400M
+    iodepth: 64
+    numjobs: 4
+    name: iops_randwrite
+    rw: randwrite
+  # 顺序读iops
+  read_iops:
+    bs: 4k
+    size: 102400M
+    iodepth: 64
+    numjobs: 4
+    name: iops_read
+    rw: read
+  # 随机读iops
+  randread_iops:
+    bs: 4k
+    size: 102400M
+    iodepth: 64
+    numjobs: 4
+    name: iops_randread
+    rw: randread
+  # 顺序写吞吐
+  write_bw:
+    bs: 1m
+    size: 102400M
+    iodepth: 64
+    numjobs: 4
+    name: bw_write
+    rw: write
+  # 随机写吞吐
+  randwrite_bw:
+    bs: 1m
+    size: 102400M
+    iodepth: 64
+    numjobs: 4
+    name: bw_randwrite
+    rw: randwrite
+  # 顺序读吞吐
+  read_bw:
+    bs: 1m
+    size: 102400M
+    iodepth: 64
+    numjobs: 4
+    name: bw_read
+    rw: read
+  # 随机读吞吐
+  randread_bw:
+    bs: 1m
+    size: 102400M
+    iodepth: 64
+    numjobs: 4
+    name: bw_randread
+    rw: randread

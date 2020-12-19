@@ -1,0 +1,31 @@
+#配置信息
+machines_info:
+  #指定一个默认池
+  poolname: rbd_test4
+  #配置控制网IP
+  stor-mgt:
+      host: 10.996.996.996
+      ssh_port: 22
+      user: root
+      password: cflEOKUjtyz
+  #以下为计算节点 配置控制网IP
+  computes:
+    compute01:
+      host: 10.996.996.996
+      ssh_port: 22
+      user: root
+      password: OKUjtyz
+  # 以下为虚拟机 创建的虚机绑上service data网
+  vms:
+    vm01:
+      host: 10.996.996.996
+      ssh_port: 22
+      user: root
+      password: 123
+      dev: /dev/vdh
+    vm02:
+      host: 10.996.996.996
+      ssh_port: 22
+      user: root
+      password: 123
+      dev: /dev/vdg
