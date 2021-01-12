@@ -1,0 +1,134 @@
+# 以下为fio配置信息
+fio_configs:
+  fio_result_output: /var/log/autorunfiosingle/
+  ioengine: libaio
+  runtime: 120
+  direct: 1
+  # 顺序写时延
+  4kwrite_lat:
+    bs: 4k
+    size: 204800M
+    iodepth: 1
+    numjobs: 1
+    name: 4klat_write
+    rw: write
+  # 随机写时延
+  4krandwrite_lat:
+    bs: 4k
+    size: 204800M
+    iodepth: 1
+    numjobs: 1
+    name: 4klat_randwrite
+    rw: randwrite
+  # 顺序读时延
+  4kread_lat:
+    bs: 4k
+    size: 204800M
+    iodepth: 1
+    numjobs: 1
+    name: 4klat_read
+    rw: read
+  # 随机读时延
+  4krandread_lat:
+    bs: 4k
+    size: 204800M
+    iodepth: 1
+    numjobs: 1
+    name: 4klat_randread
+    rw: randread
+  # 顺序写iops
+  4kwrite_iops:
+    bs: 4k
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 4kiops_write
+    rw: write
+  # 随机写iops
+  4krandwrite_iops:
+    bs: 4k
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 4kiops_randwrite
+    rw: randwrite
+  # 顺序读iops
+  4kread_iops:
+    bs: 4k
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 4kiops_read
+    rw: read
+  # 随机读iops
+  4krandread_iops:
+    bs: 4k
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 4kiops_randread
+    rw: randread
+  # 顺序写iops
+  17kwrite_iops:
+    bs: 17k
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 17kiops_write
+    rw: write
+  # 随机写iops
+  17krandwrite_iops:
+    bs: 17k
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 17kiops_randwrite
+    rw: randwrite
+  # 顺序读iops
+  17kread_iops:
+    bs: 17k
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 17kiops_read
+    rw: read
+  # 随机读iops
+  17krandread_iops:
+    bs: 17k
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 17kiops_randread
+    rw: randread
+  # 顺序写吞吐
+  1mwrite_bw:
+    bs: 1m
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 1mbw_write
+    rw: write
+  # 随机写吞吐
+  1mrandwrite_bw:
+    bs: 1m
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 1mbw_randwrite
+    rw: randwrite
+  # 顺序读吞吐
+  1mread_bw:
+    bs: 1m
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 1mbw_read
+    rw: read
+  # 随机读吞吐
+  1mrandread_bw:
+    bs: 1m
+    size: 204800M
+    iodepth: 64
+    numjobs: 4
+    name: 1mbw_randread
+    rw: randread

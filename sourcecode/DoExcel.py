@@ -47,14 +47,10 @@ class DoExcel:
         DoExcel.worksheet.set_column('H:H', 8)
         DoExcel.worksheet.set_column('I:I', 10)
         DoExcel.worksheet.set_column('J:J', 17)
-        DoExcel.worksheet.set_column('K:K', 17)
-        DoExcel.worksheet.set_column('L:L', 17)
-        DoExcel.worksheet.set_column('M:M', 17)
-        DoExcel.worksheet.set_column('N:N', 17)
-        DoExcel.worksheet.set_column('O:O', 17)
-        DoExcel.worksheet.set_column('P:P', 17)
-        DoExcel.worksheet.set_column('Q:Q', 17)#放ceph -s 写
-        DoExcel.worksheet.set_column('R:R', 17)#放ceph -s 读
+        DoExcel.worksheet.set_column('K:K', 17)#lat
+        DoExcel.worksheet.set_column('L:L', 17)#iops
+        DoExcel.worksheet.set_column('M:M', 17)#bw
+        DoExcel.worksheet.set_column('N:N', 17)#ceph -s
 
         # 设置表头
         DoExcel.worksheet.write(0, 0, '机器数量', DoExcel.style1)
@@ -67,14 +63,10 @@ class DoExcel:
         DoExcel.worksheet.write(0, 7, 'direct', DoExcel.style1)
         DoExcel.worksheet.write(0, 8, 'ioengine', DoExcel.style1)
         DoExcel.worksheet.write(0, 9, 'name', DoExcel.style1)
-        DoExcel.worksheet.write(0, 10, 'iops_write(op/s)', DoExcel.style2)
-        DoExcel.worksheet.write(0, 11, 'iops_read(op/s)', DoExcel.style2)
-        DoExcel.worksheet.write(0, 12, 'bw_write(MB/s)', DoExcel.style2)
-        DoExcel.worksheet.write(0, 13, 'bw_read(MB/s)', DoExcel.style2)
-        DoExcel.worksheet.write(0, 14, 'lat_write(ms)', DoExcel.style2)
-        DoExcel.worksheet.write(0, 15, 'lat_read(ms)', DoExcel.style2)
-        DoExcel.worksheet.write(0, 16, '集群iops_写(op/s)', DoExcel.style2)
-        DoExcel.worksheet.write(0, 17, '集群iops_读(op/s)', DoExcel.style2)
+        DoExcel.worksheet.write(0, 10, 'lat(ms)', DoExcel.style2)
+        DoExcel.worksheet.write(0, 11, 'iops(op/s)', DoExcel.style2)
+        DoExcel.worksheet.write(0, 12, 'bw(MB/s)', DoExcel.style2)
+        DoExcel.worksheet.write(0, 13, '集群iops监控', DoExcel.style2)
 
 
     # 处理ceph_s的原始数据，参数只能填是wr还是rd
@@ -87,7 +79,7 @@ class DoExcel:
         iops_num = 0
         sum = 0
         max_num = 0.0
-        min_num = 99999999999.9
+        min_num = 99999.9
 
         for root, dirs, files in os.walk(ceph_s_dir):
             for file in files:
@@ -103,8 +95,8 @@ class DoExcel:
                 continue
             if 'filename' in all_list_fio[i]:
                 if len(iops_list):
-                    upperlimit = int(math.ceil(len(iops_list)*0.9))
-                    lowerlimit = int(math.ceil(len(iops_list)*0.2))
+                    upperlimit = int(math.ceil(len(iops_list)*1.0))
+                    lowerlimit = int(math.ceil(len(iops_list)*0.8))
                     iops_num = upperlimit - lowerlimit
                     for j in range(lowerlimit, upperlimit):
                         sum += iops_list[j]
@@ -164,6 +156,19 @@ class DoExcel:
         ## 取数据，就是value
         all_data = {}
         files_dict = {}
+
+        #把json里那些开头不是{的全去掉
+        for file_dir in file_dir_list:
+            for root, dirs, files in os.walk(file_dir):
+                for file in files:
+                    with open(root + '/' + file, "r") as r:
+                        lines = r.readlines()
+                    with open(root + '/' + file, "w") as w:
+                        for l in lines:
+                            if "No space left on device" not in l:
+                                if "ENOSPC on laying out file" not in l:
+                                    w.write(l)
+
         for file_dir in file_dir_list:
             for root, dirs, files in os.walk(file_dir):
                 # print(root) #当前目录路径
@@ -186,15 +191,25 @@ class DoExcel:
                         data = json.loads(f.read())
                         write_iops = str(data["jobs"][0]["write"]["iops"])
                         read_iops = str(data["jobs"][0]["read"]["iops"])
-                        write_bw = str(data["jobs"][0]["write"]["bw"])
-                        read_bw = str(data["jobs"][0]["read"]["bw"])
-                        write_lat = str(data["jobs"][0]["write"]["lat"]["mean"])
-                        read_lat = str(data["jobs"][0]["read"]["lat"]["mean"])
-                    f.close()
+                        write_bw = str(data["jobs"][0]["write"]["bw"]/1024)
+                        read_bw = str(data["jobs"][0]["read"]["bw"]/1024)
+                        ##时延，判断是lat还是lat_ns
+                        if 'lat' in data["jobs"][0]["write"]:
+                            write_lat = '=ROUND(' + str(data["jobs"][0]["write"]["lat"]["mean"]) + ',2)'
+                        elif 'lat_ns' in data["jobs"][0]["write"]:
+                            write_lat = '=ROUND(' + str(data["jobs"][0]["write"]["lat_ns"]["mean"]/1000000) + ',2)'
+                        else:
+                            write_lat = '---'
+                        if 'lat' in data["jobs"][0]["read"]:
+                            read_lat = '=ROUND(' + str(data["jobs"][0]["read"]["lat"]["mean"]) + ',2)'
+                        elif 'lat_ns' in data["jobs"][0]["read"]:
+                            read_lat = '=ROUND(' + str(data["jobs"][0]["read"]["lat_ns"]["mean"]/1000000) + ',2)'
+                        else:
+                            read_lat = '---'
                     files_dict[file] = [bs, size, iodepth, numjobs, rw, runtime, direct, ioengine, name, write_iops,
                                         read_iops, write_bw, read_bw, write_lat, read_lat]
                 all_data[root.split('/')[-1]] = files_dict
-
+                files_dict = {}# 这里如果不清空，每次的值都是一样的
         machine_num = len(all_data)  ##机器数量
 
         ##把时延的单独拿出来
@@ -214,45 +229,45 @@ class DoExcel:
         ##把iops和吞吐的单独拿出来
         all_iops_bw_data = all_data  # iops和bw数据
         ## 如果只有一台机器测试iops和bw，那么就只取这一台的值
-        if len(all_iops_bw_data) == 1:
-            all_iops_bw_data = all_iops_bw_data.values()[0]
+        # if len(all_iops_bw_data) == 1:
+        #     all_iops_bw_data = all_iops_bw_data.values()[0]
         ##大于一台则把iops和bw的加在一起
-        else:
-            # 先把命令的key取出来
-            for iops_bw_data in all_iops_bw_data.keys():
-                fio_iops_bw_commands = all_iops_bw_data[iops_bw_data].keys()
-                break
-            for command in fio_iops_bw_commands:
-                all_iops_bw_sum_data[command] = [None, None, None, None, None, None, None, None, None, '0', '0', '0',
-                                                 '0', '0', '0']
-            ##根据命令，遍历每台机器的数据
-            for data in all_iops_bw_sum_data.keys():  # fio命令以及空数据
-                for ip in all_iops_bw_data.keys():  # 所有机器ip
-                    for key in all_iops_bw_data[ip].keys():
-                        if key == data:
-                            # 取配置
-                            all_iops_bw_sum_data[data][0] = all_iops_bw_data[ip][key][0]  # bs
-                            all_iops_bw_sum_data[data][1] = all_iops_bw_data[ip][key][1]  # size
-                            all_iops_bw_sum_data[data][2] = all_iops_bw_data[ip][key][2]  # iodepth
-                            all_iops_bw_sum_data[data][3] = all_iops_bw_data[ip][key][3]  # numjobs
-                            all_iops_bw_sum_data[data][4] = all_iops_bw_data[ip][key][4]  # rw
-                            all_iops_bw_sum_data[data][5] = all_iops_bw_data[ip][key][5]  # runtime
-                            all_iops_bw_sum_data[data][6] = all_iops_bw_data[ip][key][6]  # direct
-                            all_iops_bw_sum_data[data][7] = all_iops_bw_data[ip][key][7]  # ioengine
-                            all_iops_bw_sum_data[data][8] = all_iops_bw_data[ip][key][8]  # name
-                            # 加数据
-                            all_iops_bw_sum_data[data][9] = all_iops_bw_sum_data[data][9] + '+' + \
-                                                            all_iops_bw_data[ip][key][9]
-                            all_iops_bw_sum_data[data][10] = all_iops_bw_sum_data[data][10] + '+' + \
-                                                             all_iops_bw_data[ip][key][10]
-                            all_iops_bw_sum_data[data][11] = all_iops_bw_sum_data[data][11] + '+' + \
-                                                             all_iops_bw_data[ip][key][11]
-                            all_iops_bw_sum_data[data][12] = all_iops_bw_sum_data[data][12] + '+' + \
-                                                             all_iops_bw_data[ip][key][12]
-                            all_iops_bw_sum_data[data][13] = all_iops_bw_sum_data[data][13] + '+' + \
-                                                             all_iops_bw_data[ip][key][13]
-                            all_iops_bw_sum_data[data][14] = all_iops_bw_sum_data[data][14] + '+' + \
-                                                             all_iops_bw_data[ip][key][14]
+        # else:
+        # 先把命令的key取出来
+        for iops_bw_data in all_iops_bw_data.keys():
+            fio_iops_bw_commands = all_iops_bw_data[iops_bw_data].keys()
+            break
+        for command in fio_iops_bw_commands:
+            all_iops_bw_sum_data[command] = [None, None, None, None, None, None, None, None, None, '0', '0', '0',
+                                             '0', '0', '0']
+        ##根据命令，遍历每台机器的数据
+        for data in all_iops_bw_sum_data.keys():  # fio命令以及空数据
+            for ip in all_iops_bw_data.keys():  # 所有机器ip
+                for key in all_iops_bw_data[ip].keys():
+                    if key == data:
+                        # 取配置
+                        all_iops_bw_sum_data[data][0] = all_iops_bw_data[ip][key][0]  # bs
+                        all_iops_bw_sum_data[data][1] = all_iops_bw_data[ip][key][1]  # size
+                        all_iops_bw_sum_data[data][2] = all_iops_bw_data[ip][key][2]  # iodepth
+                        all_iops_bw_sum_data[data][3] = all_iops_bw_data[ip][key][3]  # numjobs
+                        all_iops_bw_sum_data[data][4] = all_iops_bw_data[ip][key][4]  # rw
+                        all_iops_bw_sum_data[data][5] = all_iops_bw_data[ip][key][5]  # runtime
+                        all_iops_bw_sum_data[data][6] = all_iops_bw_data[ip][key][6]  # direct
+                        all_iops_bw_sum_data[data][7] = all_iops_bw_data[ip][key][7]  # ioengine
+                        all_iops_bw_sum_data[data][8] = all_iops_bw_data[ip][key][8]  # name
+                        # 加数据
+                        all_iops_bw_sum_data[data][9] = all_iops_bw_sum_data[data][9] + '+' + \
+                                                        all_iops_bw_data[ip][key][9]
+                        all_iops_bw_sum_data[data][10] = all_iops_bw_sum_data[data][10] + '+' + \
+                                                         all_iops_bw_data[ip][key][10]
+                        all_iops_bw_sum_data[data][11] = all_iops_bw_sum_data[data][11] + '+' + \
+                                                         all_iops_bw_data[ip][key][11]
+                        all_iops_bw_sum_data[data][12] = all_iops_bw_sum_data[data][12] + '+' + \
+                                                         all_iops_bw_data[ip][key][12]
+                        all_iops_bw_sum_data[data][13] = all_iops_bw_sum_data[data][13] + '+' + \
+                                                         all_iops_bw_data[ip][key][13]
+                        all_iops_bw_sum_data[data][14] = all_iops_bw_sum_data[data][14] + '+' + \
+                                                         all_iops_bw_data[ip][key][14]
 
         # all_lat_data #这个是lat的
         # all_iops_bw_sum_data #这个是iops和bw的
@@ -291,23 +306,17 @@ class DoExcel:
             DoExcel.worksheet.write(count, 7, str(all_lat_data[fio_command][6]), DoExcel.style0)
             DoExcel.worksheet.write(count, 8, str(all_lat_data[fio_command][7]), DoExcel.style0)
             DoExcel.worksheet.write(count, 9, str(all_lat_data[fio_command][8]), DoExcel.style0)
-            DoExcel.worksheet.write(count, 10, '---', DoExcel.style0)
+            #如果是读的，只取读时延
+            if str(all_lat_data[fio_command][4]).find('read') >= 0:
+                DoExcel.worksheet.write(count, 10, str(all_lat_data[fio_command][14]), DoExcel.style0)
+            #如果是写的，只取写时延
+            elif str(all_lat_data[fio_command][4]).find('write') >= 0:
+                DoExcel.worksheet.write(count, 10, str(all_lat_data[fio_command][13]), DoExcel.style0)
+            else:
+                DoExcel.worksheet.write(count, 10, 'has wrong', DoExcel.style0)
             DoExcel.worksheet.write(count, 11, '---', DoExcel.style0)
             DoExcel.worksheet.write(count, 12, '---', DoExcel.style0)
             DoExcel.worksheet.write(count, 13, '---', DoExcel.style0)
-            #如果是读的，只取读时延
-            if str(all_lat_data[fio_command][4]).find('read') >= 0:
-                DoExcel.worksheet.write(count, 14, '---', DoExcel.style0)
-                DoExcel.worksheet.write(count, 15, str(all_lat_data[fio_command][14]), DoExcel.style0)
-            #如果是写的，只取写时延
-            elif str(all_lat_data[fio_command][4]).find('write') >= 0:
-                DoExcel.worksheet.write(count, 14, str(all_lat_data[fio_command][13]), DoExcel.style0)
-                DoExcel.worksheet.write(count, 15, '---', DoExcel.style0)
-            else:
-                DoExcel.worksheet.write(count, 14, 'has wrong', DoExcel.style0)
-                DoExcel.worksheet.write(count, 15, 'has wrong', DoExcel.style0)
-            DoExcel.worksheet.write(count, 16, str(all_lat_data[fio_command][15]), DoExcel.style0)
-            DoExcel.worksheet.write(count, 17, str(all_lat_data[fio_command][16]), DoExcel.style0)
             count = count + 1
         # 填写iops和bw
         for fio_command in all_iops_bw_sum_data.keys():
@@ -322,86 +331,28 @@ class DoExcel:
             DoExcel.worksheet.write(count, 7, str(all_iops_bw_sum_data[fio_command][6]), DoExcel.style0)
             DoExcel.worksheet.write(count, 8, str(all_iops_bw_sum_data[fio_command][7]), DoExcel.style0)
             DoExcel.worksheet.write(count, 9, str(all_iops_bw_sum_data[fio_command][8]), DoExcel.style0)
-            # 如果是读的，只取读iops
+            DoExcel.worksheet.write(count, 10, '---', DoExcel.style0)
+            # 如果是读的，只取读
             if str(all_iops_bw_sum_data[fio_command][4]).find('read') >= 0:
-                DoExcel.worksheet.write(count, 10, '---', DoExcel.style0)
                 DoExcel.worksheet.write(count, 11, '=ROUND(SUM('  + str(all_iops_bw_sum_data[fio_command][10]) + '),2)', DoExcel.style0)
-            # 如果是写的，只取写iops
+                DoExcel.worksheet.write(count, 12, '=ROUND(SUM('  + str(all_iops_bw_sum_data[fio_command][12]) + '),2)', DoExcel.style0)
+            # 如果是写的，只取写
             elif str(all_iops_bw_sum_data[fio_command][4]).find('write') >= 0:
-                DoExcel.worksheet.write(count, 10, '=ROUND(SUM('  + str(all_iops_bw_sum_data[fio_command][9]) + '),2)', DoExcel.style0)
-                DoExcel.worksheet.write(count, 11, '---', DoExcel.style0)
-            else:
-                DoExcel.worksheet.write(count, 10, 'has wrong', DoExcel.style0)
-                DoExcel.worksheet.write(count, 11, 'has wrong', DoExcel.style0)
-            # 如果是读的，只取读bw
-            if str(all_iops_bw_sum_data[fio_command][4]).find('read') >= 0:
-                DoExcel.worksheet.write(count, 12, '---', DoExcel.style0)
-                DoExcel.worksheet.write(count, 13, '=ROUND(SUM('  + str(all_iops_bw_sum_data[fio_command][12]) + '),2)', DoExcel.style0)
-            # 如果是写的，只取写bw
-            elif str(all_iops_bw_sum_data[fio_command][4]).find('write') >= 0:
+                DoExcel.worksheet.write(count, 11, '=ROUND(SUM('  + str(all_iops_bw_sum_data[fio_command][9]) + '),2)', DoExcel.style0)
                 DoExcel.worksheet.write(count, 12, '=ROUND(SUM('  + str(all_iops_bw_sum_data[fio_command][11]) + '),2)', DoExcel.style0)
-                DoExcel.worksheet.write(count, 13, '---', DoExcel.style0)
             else:
-                DoExcel.worksheet.write(count, 14, 'has wrong', DoExcel.style0)
-                DoExcel.worksheet.write(count, 15, 'has wrong', DoExcel.style0)
-            DoExcel.worksheet.write(count, 14, '---', DoExcel.style0)
-            DoExcel.worksheet.write(count, 15, '---', DoExcel.style0)
-            DoExcel.worksheet.write(count, 16, str(all_iops_bw_sum_data[fio_command][15]), DoExcel.style0)
-            DoExcel.worksheet.write(count, 17, str(all_iops_bw_sum_data[fio_command][16]), DoExcel.style0)
+                DoExcel.worksheet.write(count, 11, 'has wrong', DoExcel.style0)
+                DoExcel.worksheet.write(count, 12, 'has wrong', DoExcel.style0)
+            # 取ceph -s
+            if str(all_iops_bw_sum_data[fio_command][4]).find('read') >= 0:
+                DoExcel.worksheet.write(count, 13, str(all_iops_bw_sum_data[fio_command][16]), DoExcel.style0)
+            elif str(all_iops_bw_sum_data[fio_command][4]).find('write') >= 0:
+                DoExcel.worksheet.write(count, 13, str(all_iops_bw_sum_data[fio_command][15]), DoExcel.style0)
+            else:
+                DoExcel.worksheet.write(count, 13, 'has wrong', DoExcel.style0)
             count = count + 1
 
-if __name__ == '__main__':
-    #################################代填参数 start###################################################
-    ## 在指定名字的时候，如果小于10，要写成02，05这样的形式
-    ##生成excel的文件名，不用加后缀
-    xlsx_name = "autotest"
-    ##生成excelsheet的名字
-    sheet_name = ""
-    ## fio数据路径
-    fio_path = "C:/Users/liiuzhen/Desktop/fioformat/autofiooutput2020-12-18-13-02-35/compute/"
-    ## ceph-s数据路径
-    ceph_s_path = r"C:/Users/liiuzhen/Desktop/fioformat/autofiooutput2020-12-18-13-02-35/ceph_s/compute/"
-    ## 生成excel所在路径
-    save_path = r"D:/"
-    #################################代填参数 end#####################################################
 
-    workbook = DoExcel(save_path + xlsx_name + '.xlsx', sheet_name)
-    # averages_rd = workbook.parse_ceph_s(ceph_s_path, 'rd')
-    # averages_wr = workbook.parse_ceph_s(ceph_s_path, 'wr')
-    lat_data, iops_bw_data = workbook.parse_json(fio_path, ceph_s_path)
-    workbook.to_excel(lat_data, iops_bw_data, 3)
-    workbook.workbook.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # 取子目录名字，判断是vm节点还是compute节点
+    def get_location(self, compute_or_vms):
+        return compute_or_vms

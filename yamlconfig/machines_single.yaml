@@ -1,0 +1,21 @@
+machines_info:
+  #指定一个默认池
+  poolname: cinder.volumes_5466
+  rbd_size: 200
+  #配置控制网IP
+  stor-mgt:
+      use_public_encryption: "false"
+      rsa_file: /root/.ssh/root/.ssh/id_rsa
+      host: 0.0.0.0
+      ssh_port: 22
+      user: root
+      password: 111111
+  #以下为计算节点 配置控制网IP
+  computes:
+    compute01:
+      use_public_encryption: "false"
+      rsa_file: /root/.ssh/root/.ssh/id_rsa
+      host: 0.0.0.0
+      ssh_port: 22
+      user: root
+      password: 111111

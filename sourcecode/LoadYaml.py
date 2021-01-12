@@ -3,24 +3,28 @@ import yaml
 import os
 import re
 import time
+import traceback
 
-# 取消报错提醒
-yaml.warnings({'YAMLLoadWarning': False})
+#取消警告提醒
+#yaml.warnings({'YAMLLoadWarning': False})
 
 class LoadYaml:
-    def __init__(self):
-        self.watch_cluster_file = '/root/cluster_detection_data.out'  # 集群监控的数据输出位置，写死了
+    #'../yamlconfig/config_machines.yaml'   '../yamlconfig/config_fios.yaml'
+    def __init__(self, machines_file, fios_file):
+        self.watch_cluster_file = '/var/log/cluster_detection_data.out'  # 集群监控的数据输出位置，写死了
         # 获取当前文件路径
         filepath = os.path.dirname(__file__)
         # 获取当前文件的Realpath
         fileNamePath = os.path.split(os.path.realpath(__file__))[0]
         # 获取配置文件的路径，文件不存在抛出异常
         try:
-            machines_yaml_path = os.path.join(fileNamePath,'../yamlconfig/config_machines.yaml')
-            fios_yaml_path = os.path.join(fileNamePath,'../yamlconfig/config_fios.yaml')
+            machines_yaml_path = os.path.join(fileNamePath,machines_file)
+            fios_yaml_path = os.path.join(fileNamePath,fios_file)
             f_machines = open(machines_yaml_path, 'r')
             f_fios = open(fios_yaml_path, 'r')
         except IOError:
+            msg = traceback.format_exc()
+            print(msg)
             print('Error: config file not found, please check your filename and filepath are correct.')
             exit(0)
         # 加载配置文件
@@ -35,13 +39,19 @@ class LoadYaml:
 
     #设置compute节点信息
     def set_computes_config(self):
-        computes_config = self.machines_yaml_config['machines_info']['computes']
+        if self.machines_yaml_config['machines_info'].has_key('computes'):
+            computes_config = self.machines_yaml_config['machines_info']['computes']
+        else:
+            computes_config = {}
         return computes_config
 
 
     #设置vm节点信息
     def set_vms_config(self):
-        vms_config = self.machines_yaml_config['machines_info']['vms']
+        if self.machines_yaml_config['machines_info'].has_key('vms'):
+            vms_config = self.machines_yaml_config['machines_info']['vms']
+        else:
+            vms_config = {}
         return vms_config
 
 
@@ -49,6 +59,15 @@ class LoadYaml:
     def set_poolname(self):
         poolname = self.machines_yaml_config['machines_info']['poolname']
         return poolname
+
+
+    #设置rbd大小
+    def set_rbdsize(self):
+        if self.machines_yaml_config['machines_info'].has_key('rbd_size'):
+            rbdsize = int(self.machines_yaml_config['machines_info']['rbd_size'])
+        else:
+            rbdsize = '0'
+        return rbdsize
 
 
     def set_stor_mgt(self):
